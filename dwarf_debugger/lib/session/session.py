@@ -14,6 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
+import logging
 import frida
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
 from PyQt5.QtWidgets import QMenu
@@ -22,6 +23,7 @@ from dwarf_debugger.lib import utils
 from dwarf_debugger.lib.core import Dwarf
 from dwarf_debugger.ui.device_window import DeviceWindow
 
+logger = logging.getLogger(__name__)
 
 class SessionUINotReadyException(Exception):
     """ SessionUI not created
@@ -43,7 +45,7 @@ class Session(QObject):
         self._menu = []
 
         if self._app_window.dwarf_args.any == '':
-            self._device_window = DeviceWindow(self._app_window, self.device_manager_type)
+            self._device_window = DeviceWindow(None, self.device_manager_type)
 
     # ************************************************************************
     # **************************** Properties ********************************
@@ -108,6 +110,8 @@ class Session(QObject):
         self._menu.append(process_menu)
 
     def start(self, args):
+        logger.debug("session start")
+
         self.dwarf.onScriptDestroyed.connect(self.stop)
 
         if not args.device:
@@ -174,10 +178,11 @@ class Session(QObject):
         if pid:
             try:
                 self.dwarf.attach(pid)
+                self._device_window.accept()
+                self._app_window.showMaximized()
             except Exception as e:
                 utils.show_message_box('Failed attaching to {0}'.format(pid), str(e))
-                self.stop()
-                return
+                
 
     def _on_spawn_selected(self, data):
         pass

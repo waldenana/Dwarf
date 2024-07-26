@@ -14,6 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
+import logging
 import os
 import sys
 import argparse
@@ -147,7 +148,7 @@ def run_dwarf():
     from PyQt5.QtWidgets import QApplication
 
     import dwarf_debugger.resources  # pylint: disable=unused-import
-
+    logging.basicConfig(level=logging.DEBUG,format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
     QApplication.setDesktopSettingsAware(True)
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
@@ -188,29 +189,6 @@ def run_dwarf():
         _prefs.put('did_first_run', True)
         SetupDialog.showDialog(_prefs)
     """
-
-    if not local_update_disabled:
-        _git = Git()
-        import frida
-        remote_frida = _git.get_frida_version()
-        local_frida = frida.__version__
-
-        if remote_frida and local_frida != remote_frida['tag_name']:
-            print('Updating local frida version to ' + remote_frida['tag_name'])
-            try:
-                res = utils.do_shell_command('pip3 install frida --upgrade --user')
-                if 'Successfully installed frida-' + remote_frida['tag_name'] in res:
-                    _on_restart()
-                elif 'Requirement already up-to-date' in res:
-                    if os.path.exists('.git_cache'):
-                        shutil.rmtree('.git_cache', ignore_errors=True)
-                else:
-                    print('failed to update local frida')
-                    print(res)
-            except Exception as e:  # pylint: disable=broad-except, invalid-name
-                print('failed to update local frida')
-                print(str(e))
-
     if os.name == 'nt':
         # windows stuff
         import ctypes

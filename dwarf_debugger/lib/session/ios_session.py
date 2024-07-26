@@ -64,14 +64,15 @@ class IosSession(Session):
         if package_name:
             try:
                 self.dwarf.spawn(package_name, break_at_start=break_at_start)
+                self._device_window.accept()
             except Exception as e:
                 utils.show_message_box('Failed spawning {0}'.format(package_name), str(e))
-                self.stop()
                 return
 
             self._on_objc_modules()
 
     def _on_objc_modules(self):
+        self._app_window.showMaximized()
         self._app_window.show_main_tab('objc-inspector')
         self.dwarf.dwarf_api('enumerateObjCModules')
 

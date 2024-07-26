@@ -16,6 +16,7 @@
 """
 
 import json
+import logging
 import os
 import sys
 
@@ -34,7 +35,7 @@ from dwarf_debugger.ui.dialogs.detached import QDialogDetached
 from dwarf_debugger.ui.welcome_window import WelcomeDialog
 from dwarf_debugger.ui.widgets.hex_edit import HighLight, HighlightExistsError
 
-
+logger = logging.getLogger(__name__)
 class AppWindow(QMainWindow):
     onRestart = pyqtSignal(name='onRestart')
     onSystemUIElementCreated = pyqtSignal(str, QWidget, name='onSystemUIElementCreated')
@@ -157,10 +158,7 @@ class AppWindow(QMainWindow):
         if dwarf_args.any == '':
             self.welcome_window = WelcomeDialog(self)
             self.welcome_window.setModal(True)
-            self.welcome_window.onIsNewerVersion.connect(
-                self._enable_update_menu)
-            self.welcome_window.onUpdateComplete.connect(
-                self._on_dwarf_updated)
+            
             self.welcome_window.setWindowTitle(
                 'Welcome to Dwarf - A debugger for reverse engineers, crackers and security analyst'
             )
@@ -701,10 +699,13 @@ class AppWindow(QMainWindow):
     def _start_session(self, session_type, session_data=None):
         if self.welcome_window is not None:
             self.welcome_window.close()
+        
+        logger.debug("_start_session")
         try:
             self.session_manager.create_session(
                 session_type, session_data=session_data)
         except Exception as e:
+            print(e)
             if self.welcome_window:
                 utils.show_message_box(str(e))
 
@@ -716,6 +717,8 @@ class AppWindow(QMainWindow):
 
     def session_created(self):
         # session init done create ui for it
+        logger.debug("session_created")
+
         session = self.session_manager.session
         self._setup_main_menu()
         for ui_elem in session.session_ui_sections:
@@ -744,7 +747,7 @@ class AppWindow(QMainWindow):
         if window_state:
             self.restoreState(window_state)
 
-        self.showMaximized()
+        # self.show()
 
     def session_stopped(self):
         self.menu.clear()

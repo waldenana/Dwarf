@@ -237,15 +237,6 @@ class WelcomeDialog(QDialog):
 
         self._base_path = getattr(
             sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-        path_to_gitignore = os.path.join(
-            self._base_path, os.pardir, os.pardir, '.gitignore')
-        is_git_version = os.path.exists(path_to_gitignore)
-
-        if is_git_version and os.path.isfile(path_to_gitignore):
-            self.update_commits_thread = DwarfCommitsThread(parent)
-            self.update_commits_thread.on_update_available.connect(
-                self._on_dwarf_isupdate)
-            self.update_commits_thread.start()
 
         # center
         self.setGeometry(

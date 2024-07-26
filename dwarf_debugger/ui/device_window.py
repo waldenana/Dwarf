@@ -18,7 +18,7 @@ import frida
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy, QStyle, qApp)
+from PyQt5.QtWidgets import (QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy, QStyle, qApp,QFormLayout,QLineEdit,QPushButton)
 
 from dwarf_debugger.ui.dialogs.dwarf_dialog import DwarfDialog
 from dwarf_debugger.ui.widgets.device_bar import DeviceBar
@@ -94,7 +94,7 @@ class DeviceWindow(DwarfDialog):
             self._dev_bar.onDeviceChanged.connect(self._changed_device)
             main_wrap.addWidget(self._dev_bar)
 
-        """frm_lyt = QFormLayout()
+        frm_lyt = QFormLayout()
         frm_lyt.setContentsMargins(10, 10, 10, 10)
 
         _label = QLabel('Script to load (optional)')
@@ -105,7 +105,7 @@ class DeviceWindow(DwarfDialog):
 
         frm_lyt.addRow(load_button, user_script_path)
 
-        main_wrap.addLayout(frm_lyt)"""
+        main_wrap.addLayout(frm_lyt)
 
         # procs/spawns lists
         spawns_vbox = QVBoxLayout()
@@ -158,12 +158,10 @@ class DeviceWindow(DwarfDialog):
 
     def _pid_selected(self, pid):
         if pid:
-            self.accept()
             self.onSelectedProcess.emit([self.device, pid])
 
     def _spawn_selected(self, spawn):
         if spawn[1]:
-            self.accept()
             self.onSpawnSelected.emit([self.device, spawn[1], self.spawn_list.break_at_start])
 
     def _on_spawn_error(self, error_str):

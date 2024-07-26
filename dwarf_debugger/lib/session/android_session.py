@@ -53,8 +53,10 @@ class AndroidSession(Session):
         if len(version) == 3:
             if int(version[0]) >= 12 and int(version[1]) >= 7:
                 return frida.get_usb_device(timeout=60)
-
-        return frida.get_usb_device()
+        try:
+            return frida.get_usb_device()
+        except frida.InvalidArgumentError as e:
+            return None
 
     def _setup_menu(self):
         """ Build Menus
@@ -81,7 +83,8 @@ class AndroidSession(Session):
 
     def start(self, args):
         super().start(args)
-        self.adb.device = self.dwarf.device.id
+        if self.dwarf.device:
+            self.adb.device = self.dwarf.device.id
 
     def decompile_apk(self):
         apk_dlg = ApkListDialog(self._app_window)
@@ -123,9 +126,9 @@ class AndroidSession(Session):
         if package_name:
             try:
                 self.dwarf.spawn(package_name, break_at_start=break_at_start)
+                self._device_window.accept()
             except Exception as e:
                 utils.show_message_box('Failed spawning {0}'.format(package_name), str(e))
-                self.stop()
                 return
 
             self._on_java_classes()

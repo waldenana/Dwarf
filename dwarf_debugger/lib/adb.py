@@ -93,6 +93,7 @@ class Adb(QObject):
                 self._adb_available = False
                 adb_devices = utils.do_shell_command('adb devices')
 
+                self._adb_available = True
                 try:
                     if adb_devices:
                         adb_devices = adb_devices.split(os.linesep)
