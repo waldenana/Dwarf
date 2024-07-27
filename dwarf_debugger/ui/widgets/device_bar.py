@@ -209,9 +209,9 @@ class DeviceBar(QWidget):
                 tag_start = asset_name.index('android-')
                 if asset_name.index('server') >= 0:
                     tag = asset_name[tag_start + 8:]
-                    self.updated_frida_assets_url[tag] = asset['browser_download_url']
+                    self.updated_frida_assets_url[tag] = asset['path']
                     logger.debug("get frida server tag:%s ,name:%s path:%s", tag, asset_name,
-                                 asset['browser_download_url'])
+                                 asset['path'])
 
     def setup(self):
         """ Setup ui

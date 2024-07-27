@@ -18,8 +18,11 @@ import frida
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy, QStyle, qApp,QFormLayout,QLineEdit,QPushButton)
+from PyQt5.QtWidgets import (QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy, QStyle, qApp, QFormLayout, QLineEdit,
+                             QPushButton)
 
+from dwarf_debugger.ui.dialogs.dialog_list import ListDialog
+from dwarf_debugger.ui.dialogs.dialog_scripts import ScriptsDialog
 from dwarf_debugger.ui.dialogs.dwarf_dialog import DwarfDialog
 from dwarf_debugger.ui.widgets.device_bar import DeviceBar
 from dwarf_debugger.ui.widgets.process_list import ProcessList
@@ -100,9 +103,9 @@ class DeviceWindow(DwarfDialog):
         _label = QLabel('Script to load (optional)')
         frm_lyt.addRow(_label)
 
-        user_script_path = QLineEdit()
-        load_button = QPushButton('...')
-
+        user_script_path = QLabel()
+        load_button = QPushButton('Select')
+        load_button.clicked.connect(self._on_select_script)
         frm_lyt.addRow(load_button, user_script_path)
 
         main_wrap.addLayout(frm_lyt)
@@ -169,3 +172,7 @@ class DeviceWindow(DwarfDialog):
 
     def _on_proc_error(self, error_str):
         utils.show_message_box('Failed to refresh Proclist', error_str)
+
+    def _on_select_script(self):
+        # ListDialog.build_and_show()
+        ScriptsDialog.pick(self.parent())

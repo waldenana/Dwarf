@@ -79,31 +79,17 @@ class JsEditorDialog(DwarfDialog):
         dwarf.clicked.connect(self.handler_dwarf_scripts)
         top_buttons.addWidget(dwarf)
 
-        inject = QPushButton('inject')
+        inject = QPushButton('Ok')
         inject.clicked.connect(self.handler_inject)
         bottom_buttons.addWidget(inject)
 
-        box = QHBoxLayout()
-        fzl = QLabel('Font Size (pt):')
-        fzl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        fzl.setFixedWidth(100)
-        box.addWidget(fzl)
-        font_size = QSpinBox()
-        font_size.setRange(9, 15)
-        font_size.setSingleStep(1)
-        font_size.setValue(self.editor_font.pointSize())
-        font_size.setFixedWidth(40)
-        font_size.valueChanged.connect(self.change_font_size)
-        box.addWidget(font_size)
-        bottom_buttons.addLayout(box)
+        cancel = QPushButton('Cancel')
+        cancel.clicked.connect(self.handler_cancel)
+        bottom_buttons.addWidget(cancel)
 
         layout.addLayout(top_buttons)
         layout.addWidget(self.input_widget)
         layout.addLayout(bottom_buttons)
-
-        #self.setMinimumWidth(app.width() - (app.width() / 10))
-        #self.setMinimumHeight(app.height() - (app.height() / 10))
-
         self.setLayout(layout)
 
     def change_font_size(self, size):
@@ -114,9 +100,9 @@ class JsEditorDialog(DwarfDialog):
         self.input_widget.setTabStopDistance(self.input_widget.fontMetrics().width('9999'))
         self.input_widget.repaint()
 
-    def show(self):
+    def edit(self):
         result = self.exec_()
-        return result == QDialog.Accepted, self.input_widget.toPlainText()
+        return result == QDialog.Accepted, self.input_widget.toPlainText(), self.file
 
     def keyPressEvent(self, event):
         super(JsEditorDialog, self).keyPressEvent(event)
@@ -128,6 +114,10 @@ class JsEditorDialog(DwarfDialog):
 
     def handler_inject(self):
         self.accept()
+        self.close()
+
+    def handler_cancel(self):
+        self.reject()
         self.close()
 
     def handler_open(self):

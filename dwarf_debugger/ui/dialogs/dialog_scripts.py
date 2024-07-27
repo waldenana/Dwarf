@@ -34,27 +34,12 @@ class ScriptsTable(DwarfListView):
 
         self._scripts_model = QStandardItemModel(0, 6)
         self._scripts_model.setHeaderData(0, Qt.Horizontal, 'Name')
-        self._scripts_model.setHeaderData(1, Qt.Horizontal, 'Author')
-        self._scripts_model.setHeaderData(1, Qt.Horizontal, Qt.AlignCenter,
-                                          Qt.TextAlignmentRole)
-        self._scripts_model.setHeaderData(2, Qt.Horizontal, 'A')
-        self._scripts_model.setHeaderData(2, Qt.Horizontal, Qt.AlignCenter,
-                                          Qt.TextAlignmentRole)
-        self._scripts_model.setHeaderData(3, Qt.Horizontal, 'I')
-        self._scripts_model.setHeaderData(3, Qt.Horizontal, Qt.AlignCenter,
-                                          Qt.TextAlignmentRole)
-        self._scripts_model.setHeaderData(4, Qt.Horizontal, 'W')
-        self._scripts_model.setHeaderData(4, Qt.Horizontal, Qt.AlignCenter,
-                                          Qt.TextAlignmentRole)
-        self._scripts_model.setHeaderData(5, Qt.Horizontal, 'Description')
+        self._scripts_model.setHeaderData(1, Qt.Horizontal, 'Description')
 
         self.setModel(self._scripts_model)
 
         self.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.header().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.header().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.header().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        self.header().setSectionResizeMode(1, QHeaderView.Stretch)
         self.doubleClicked.connect(self._item_doubleclicked)
 
     def _item_doubleclicked(self, item):
@@ -108,37 +93,14 @@ class ScriptsDialog(QDialog):
         for script_name in sorted(self._script_manager.get_scripts().keys()):
             script = self._script_manager.get_script(script_name)
             info = script['info']
-
-            if 'dwarf' in info:
-                continue
-
             _name = QStandardItem()
             _name.setText(script_name)
             _name.setToolTip(info['name'])
-
-            _author = QStandardItem()
-            if 'author' in info:
-                _author.setTextAlignment(Qt.AlignCenter)
-                _author.setText(info['author'])
-
-            _android = QStandardItem()
-            if 'android' in info:
-                _android.setIcon(self._dot_icon)
-
-            _ios = QStandardItem()
-            if 'ios' in info:
-                _ios.setIcon(self._dot_icon)
-
-            _windows = QStandardItem()
-            if 'windows' in info:
-                _windows.setIcon(self._dot_icon)
-
             _desc = QStandardItem()
             if 'description' in info:
                 _desc.setText(info['description'])
 
-            self.table.add_item(
-                [_name, _author, _android, _ios, _windows, _desc])
+            self.table.add_item([_name, _desc])
 
     def _item_selected(self, script_name):
         script_url = self._script_manager.get_script(script_name)['script']

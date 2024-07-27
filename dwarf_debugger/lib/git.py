@@ -26,10 +26,13 @@ from pathlib import Path
 
 
 class Git(object):
+    HOME_PATH = os.path.join(Path.home(), 'dwarf_debugger')
     CACHE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "exec")
     DWARF_CACHE = CACHE_PATH + '/dwarf'
     DWARF_COMMITS_CACHE = CACHE_PATH + '/dwarf_commits'
-    DWARF_SCRIPTS_CACHE = CACHE_PATH + '/dwarf_scripts'
+    DWARF_SCRIPTS_CACHE = CACHE_PATH + '/scripts'
+
+    DWARF_SCRIPTS_USER = HOME_PATH + '/scripts'
     FRIDA_CACHE = CACHE_PATH + '/frida'
 
     def __init__(self):
@@ -75,34 +78,32 @@ class Git(object):
         return self._open_cache(
             Git.DWARF_COMMITS_CACHE, 'https://api.github.com/repos/iGio90/dwarf/commits')
 
-    def get_dwarf_scripts(self):
-        return self._open_cache(
-            Git.DWARF_SCRIPTS_CACHE,
-            'https://raw.githubusercontent.com/iGio90/DwarfScripts/master/.gitmodules',
-            _json=False)
+    @staticmethod
+    def get_dwarf_scripts():
+        files = _list_frida(Git.DWARF_SCRIPTS_CACHE) + _list_frida(Git.DWARF_SCRIPTS_USER)
+        return files
 
-    def get_frida_version(self):
-        files = os.listdir(Git.FRIDA_CACHE)
-        all_version = []
+    @staticmethod
+    def get_frida_version():
         last_version = "15.1.9"
-        for file in files:
-            all_version.append({"name": file, "browser_download_url": os.path.join(Git.FRIDA_CACHE, file)})
-
         return {
             "tag_name": last_version,
-            "assets": all_version
+            "assets": _list_frida(Git.FRIDA_CACHE)
         }
 
     def get_script(self, url):
         return self._open_cache(
             Git.CACHE_PATH + '/' + hashlib.md5(url.encode('utf8')).hexdigest(), url, _json=False)
 
-    def get_script_info(self, url):
-        return self._open_cache(
-            Git.CACHE_PATH + '/' + hashlib.md5(url.encode('utf8')).hexdigest(), url)
+    @staticmethod
+    def get_script_info(path):
+        with open(path, 'r') as f:
+            data = json.loads(f.read())
+        return data
 
-    def _list_frida(self):
-        files = os.listdir(Git.FRIDA_CACHE)
-        all_version = [{"name": file, "browser_download_url": os.path.join(Git.FRIDA_CACHE, file)} for file in files]
 
-        return all_version
+def _list_frida(folder):
+    if not os.path.exists(folder):
+        return []
+    files = os.listdir(folder)
+    return [{"name": file, "path": os.path.join(folder, file)} for file in files]

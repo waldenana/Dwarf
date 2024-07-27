@@ -86,7 +86,6 @@ class DwarfConsoleInput(JsCodeEditor):
 
 
 class DwarfConsoleWidget(QWidget):
-
     onCommandExecute = pyqtSignal(str, name='onCommandExecute')
 
     def __init__(self, parent=None, input_placeholder='', function_box=False, has_input=True, completer=True):
@@ -170,10 +169,9 @@ class DwarfConsoleWidget(QWidget):
                              '// note that it\'s evaluated. Which means, if you define a variable\n'
                              '// or attach an Interceptor, it won\'t be removed by '
                              'just deleting the script content')
-        accept, what = dialog.show()
-        if self.script_file is None and dialog.file is not None:
-            # script got saved
-            self.script_file = dialog.file
+        accept, what, file = dialog.edit()
+        if self.script_file is None and file is not None:
+            self.script_file = file
         self.function_content = what
         if self.function_content:
             if accept:

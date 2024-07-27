@@ -25,6 +25,7 @@ from dwarf_debugger.ui.device_window import DeviceWindow
 
 logger = logging.getLogger(__name__)
 
+
 class SessionUINotReadyException(Exception):
     """ SessionUI not created
     """
@@ -73,7 +74,7 @@ class Session(QObject):
 
     @property
     def session_ui_sections(self):
-        return ['breakpoints', 'threads', 'console','debug']
+        return ['breakpoints', 'threads', 'console', 'debug']
 
     @property
     def frida_device(self):
@@ -182,7 +183,6 @@ class Session(QObject):
                 self._app_window.showMaximized()
             except Exception as e:
                 utils.show_message_box('Failed attaching to {0}'.format(pid), str(e))
-                
 
     def _on_spawn_selected(self, data):
         pass
