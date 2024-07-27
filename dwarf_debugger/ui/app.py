@@ -36,6 +36,8 @@ from dwarf_debugger.ui.welcome_window import WelcomeDialog
 from dwarf_debugger.ui.widgets.hex_edit import HighLight, HighlightExistsError
 
 logger = logging.getLogger(__name__)
+
+
 class AppWindow(QMainWindow):
     onRestart = pyqtSignal(name='onRestart')
     onSystemUIElementCreated = pyqtSignal(str, QWidget, name='onSystemUIElementCreated')
@@ -158,7 +160,7 @@ class AppWindow(QMainWindow):
         if dwarf_args.any == '':
             self.welcome_window = WelcomeDialog(self)
             self.welcome_window.setModal(True)
-            
+
             self.welcome_window.setWindowTitle(
                 'Welcome to Dwarf - A debugger for reverse engineers, crackers and security analyst'
             )
@@ -212,9 +214,6 @@ class AppWindow(QMainWindow):
         theme.triggered.connect(self._set_theme)
         dwarf_menu.addMenu(theme)
         dwarf_menu.addSeparator()
-
-        if self._is_newer_dwarf:
-            dwarf_menu.addAction('Update', self._update_dwarf)
         dwarf_menu.addAction('Close', self.close)
         self.menu.addMenu(dwarf_menu)
 
@@ -327,14 +326,10 @@ class AppWindow(QMainWindow):
 
             utils.show_message_box(
                 'Name: {0}\nVersion: {1}\nDescription: {2}\nAuthor: {3}\nHomepage: {4}\nLicense: {5}'.
-                    format(plugin.name, version, description, author, homepage, license_))
+                format(plugin.name, version, description, author, homepage, license_))
 
     def _enable_update_menu(self):
         self._is_newer_dwarf = True
-
-    def _update_dwarf(self):
-        if self.welcome_window:
-            self.welcome_window._update_dwarf()
 
     def _on_close_tab(self, index):
         tab_text = self.main_tabs.tabText(index)
@@ -511,6 +506,7 @@ class AppWindow(QMainWindow):
             from dwarf_debugger.ui.panels.panel_debug import QDebugPanel
             self.debug_panel = QDebugPanel(self)
             self.main_tabs.addTab(self.debug_panel, 'Debug')
+            self.debug_panel.hide()
             elem_wiget = self.debug_panel
         elif elem == 'jvm-debugger':
             from dwarf_debugger.ui.panels.panel_java_explorer import JavaExplorerPanel
@@ -699,7 +695,7 @@ class AppWindow(QMainWindow):
     def _start_session(self, session_type, session_data=None):
         if self.welcome_window is not None:
             self.welcome_window.close()
-        
+
         logger.debug("_start_session")
         try:
             self.session_manager.create_session(
@@ -808,12 +804,7 @@ class AppWindow(QMainWindow):
 
     def session_closed(self):
         self._initialize_ui_elements()
-        self.hide()
-        if self.welcome_window:
-            self.welcome_window.exec()
-        else:
-            if self.dwarf_args.any != '':
-                self.close()
+        self.close()
 
     # ui handler
     def closeEvent(self, event):

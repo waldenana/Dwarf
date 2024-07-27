@@ -105,6 +105,7 @@ class QDebugPanel(QMainWindow):
         self.app.hide_progress()
 
         if view == DEBUG_VIEW_MEMORY:
+            print("memory_panel.base", base)
             self.memory_panel.set_data(data, base=base, offset=offset)
             if not self.dock_memory_panel.isVisible():
                 self.dock_memory_panel.show()

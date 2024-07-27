@@ -100,7 +100,6 @@ class ProcessList(QWidget):
         model.setHeaderData(0, Qt.Horizontal, Qt.AlignCenter,
                             Qt.TextAlignmentRole)
         model.setHeaderData(1, Qt.Horizontal, "Name")
-
         self.process_list.doubleClicked.connect(self._on_item_clicked)
 
         v_box = QVBoxLayout()
@@ -113,8 +112,9 @@ class ProcessList(QWidget):
         self.setLayout(v_box)
 
         self.process_list.setModel(model)
-        self.process_list.header().setSectionResizeMode(
-            0, QHeaderView.ResizeToContents)
+        # self.process_list.header().setSectionResizeMode(
+        #     0, QHeaderView.ResizeToContents)
+        self.process_list.header().resizeSection(0,100)
 
         self.procs_update_thread = ProcsThread(self, self._device)
         self.procs_update_thread.add_proc.connect(self._on_add_proc)

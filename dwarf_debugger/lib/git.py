@@ -22,10 +22,11 @@ import time
 import requests
 
 from dwarf_debugger.lib import utils
+from pathlib import Path
 
 
 class Git(object):
-    CACHE_PATH = '.git_cache'
+    CACHE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "exec")
     DWARF_CACHE = CACHE_PATH + '/dwarf'
     DWARF_COMMITS_CACHE = CACHE_PATH + '/dwarf_commits'
     DWARF_SCRIPTS_CACHE = CACHE_PATH + '/dwarf_scripts'
@@ -81,8 +82,16 @@ class Git(object):
             _json=False)
 
     def get_frida_version(self):
-        return self._open_cache(
-            Git.FRIDA_CACHE, 'https://api.github.com/repos/frida/frida/releases/latest')
+        files = os.listdir(Git.FRIDA_CACHE)
+        all_version = []
+        last_version = "15.1.9"
+        for file in files:
+            all_version.append({"name": file, "browser_download_url": os.path.join(Git.FRIDA_CACHE, file)})
+
+        return {
+            "tag_name": last_version,
+            "assets": all_version
+        }
 
     def get_script(self, url):
         return self._open_cache(
@@ -91,3 +100,9 @@ class Git(object):
     def get_script_info(self, url):
         return self._open_cache(
             Git.CACHE_PATH + '/' + hashlib.md5(url.encode('utf8')).hexdigest(), url)
+
+    def _list_frida(self):
+        files = os.listdir(Git.FRIDA_CACHE)
+        all_version = [{"name": file, "browser_download_url": os.path.join(Git.FRIDA_CACHE, file)} for file in files]
+
+        return all_version

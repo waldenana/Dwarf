@@ -14,6 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
+import logging
 import os
 
 import frida
@@ -29,12 +30,15 @@ from dwarf_debugger.lib import utils
 from dwarf_debugger.lib.context import Context
 from dwarf_debugger.lib.database import Database
 from dwarf_debugger.lib.disassembler import Disassembler
-from dwarf_debugger.lib.types.breakpoint import Breakpoint, BREAKPOINT_NATIVE, BREAKPOINT_JAVA, BREAKPOINT_INITIALIZATION, BREAKPOINT_OBJC
+from dwarf_debugger.lib.types.breakpoint import Breakpoint, BREAKPOINT_NATIVE, BREAKPOINT_JAVA, \
+    BREAKPOINT_INITIALIZATION, BREAKPOINT_OBJC
 from dwarf_debugger.lib.types.watchpoint import Watchpoint
 from dwarf_debugger.lib.io import IO
 from dwarf_debugger.lib.kernel import Kernel
 
 from dwarf_debugger.ui.dialogs.dialog_input import InputDialog
+
+logger = logging.getLogger(__name__)
 
 
 class Dwarf(QObject):
@@ -407,6 +411,7 @@ class Dwarf(QObject):
         if self._process is not None:
             self.detach()
         try:
+            logger.debug("spawning '%s'", package)
             if package == '-':
                 self.attach([os.getpid()], script=script)
             else:
@@ -414,7 +419,7 @@ class Dwarf(QObject):
                     self._pid = self.device.spawn([package] + args)
                 else:
                     # args not supported in remote targets
-                    self._pid = self.device.spawn(package)
+                    self._pid = self.device.spawn([package])
                 self._package = package
                 self._process = self.device.attach(self._pid)
                 self._process.on('detached', self._on_detached)
@@ -514,7 +519,7 @@ class Dwarf(QObject):
         if input_ is None or not isinstance(input_, str):
             accept, input_ = InputDialog.input(
                 self._app_window, hint='insert obj class or method',
-                placeholder='com.package.class or com.package.class.method') #todo
+                placeholder='com.package.class or com.package.class.method')  # todo
             if not accept:
                 return
         self.objc_pending_args = pending_args
@@ -610,7 +615,6 @@ class Dwarf(QObject):
         if 'payload' not in message:
             print('payload: ' + str(message))
             return
-
         self.onReceiveCmd.emit([message, data])
 
         what = message['payload']
@@ -746,7 +750,7 @@ class Dwarf(QObject):
             # there are cases in which we want to release the thread from a js api so we need to call this
             self.onRequestJsThreadResume.emit(int(parts[1]))
         elif cmd == 'set_context':
-            #data = json.loads(parts[1])
+            # data = json.loads(parts[1])
             # WORKAROUND: Some ObjC Methods have multiple ':' in name. Restoring ':::'
             data = json.loads(":::".join(parts[1:]))
             if 'modules' in data:

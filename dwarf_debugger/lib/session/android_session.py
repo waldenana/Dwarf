@@ -127,6 +127,7 @@ class AndroidSession(Session):
             try:
                 self.dwarf.spawn(package_name, break_at_start=break_at_start)
                 self._device_window.accept()
+                self._app_window.showMaximized()
             except Exception as e:
                 utils.show_message_box('Failed spawning {0}'.format(package_name), str(e))
                 return

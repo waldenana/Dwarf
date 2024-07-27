@@ -14,19 +14,17 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 """
-import os
-import lzma
-import frida
-import requests
+import logging
 
-from PyQt5.Qt import (Qt, QSize, QRect, pyqtSignal, QThread, QMargins, QTimer)
-from PyQt5.QtGui import QFont, QPixmap, QIcon
-from PyQt5.QtWidgets import (QWidget, QDialog, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QListView, QSpacerItem,
-                             QSizePolicy, QStyle, qApp, QComboBox)
+import frida
+from PyQt5.Qt import (Qt, pyqtSignal, QThread, QTimer)
+from PyQt5.QtWidgets import (QWidget, QLabel, QHBoxLayout, QPushButton, qApp, QComboBox)
 
 from dwarf_debugger.lib import utils
 from dwarf_debugger.lib.adb import Adb
 from dwarf_debugger.lib.git import Git
+
+logger = logging.getLogger(__name__)
 
 
 class FridaUpdateThread(QThread):
@@ -56,20 +54,20 @@ class FridaUpdateThread(QThread):
             self._adb = value
 
     @property
-    def frida_update_url(self):
-        return self._frida_update_url
+    def frida_path(self):
+        return self._frida_path
 
-    @frida_update_url.setter
-    def frida_update_url(self, value):
-        if isinstance(value, str) and value.startswith('http'):
-            self._frida_update_url = value
+    @frida_path.setter
+    def frida_path(self, value):
+        if isinstance(value, str):
+            self._frida_path = value
 
     # ************************************************************************
     # **************************** Functions *********************************
     # ************************************************************************
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._frida_update_url = None
+        self._frida_path = None
         self._adb = None
 
     def run(self):
@@ -87,97 +85,26 @@ class FridaUpdateThread(QThread):
             self.onError.emit('Not connected')
             return
 
-        if self._frida_update_url is None or self._frida_update_url == '':
-            self.onError.emit('Missing frida download url')
-            return
+        self.onStatusUpdate.emit('Downloading frida ' + self.frida_path)
+        # mount system rw
+        self.onStatusUpdate.emit('Pushing to device')
+        logger.debug("install frida " + self.frida_path)
+        # push file to device
+        self.onStatusUpdate.emit('Setting up and starting frida')
+        # kill frida
+        self._adb.kill_frida()
 
-        self.onStatusUpdate.emit('Downloading latest frida')
+        _device_path = '/data/local/tmp'
+        self._adb.push(self._frida_path, _device_path + '/frida-server')
+        # just to make sure
+        self._adb.su_cmd('chown root:root ' + _device_path + '/frida-server')
+        # make it executable
+        self._adb.su_cmd('chmod 06755 ' + _device_path + '/frida-server')
 
-        try:
-            if utils.is_connected():
-                request = requests.get(self._frida_update_url, stream=True)
-            else:
-                self.onError.emit('Not connected')
-                return
-        except requests.ConnectionError:
-            self.onError.emit('Failed to download latest frida')
-            return
-
-        # reset url
-        self._frida_update_url = None
-
-        if request is not None and request.status_code == 200:
-            # write data to local file
-            try:
-                with open('frida.xz', 'wb') as frida_archive:
-                    for chunk in request.iter_content(chunk_size=1024):
-                        if chunk:
-                            frida_archive.write(chunk)
-            except EnvironmentError:
-                self.onError.emit('Failed to write frida.xz')
-                return
-
-            # start extraction
-            if os.path.exists('frida.xz'):
-                self.onStatusUpdate.emit('Extracting latest frida')
-                try:
-                    with lzma.open('frida.xz') as frida_archive:
-                        with open('frida-server', 'wb') as frida_binary:
-                            frida_binary.write(frida_archive.read())
-
-                    # remove downloaded archive
-                    os.remove('frida.xz')
-                except lzma.LZMAError:
-                    self.onError.emit('Failed to extract frida.xz')
-                    return
-                except EnvironmentError:
-                    self.onError.emit('Failed to write frida')
-                    return
-            else:
-                self.onError.emit('Failed to open frida.xz')
-                return
-
-            self.onStatusUpdate.emit('Mounting devices filesystem')
-            # mount system rw
-            if self._adb.mount_system():
-                self.onStatusUpdate.emit('Pushing to device')
-                # push file to device
-                self._adb.push('frida-server', '/sdcard/')
-                self.onStatusUpdate.emit('Setting up and starting frida')
-                # kill frida
-                self._adb.kill_frida()
-
-                _device_path = '/system/xbin'
-                res = self._adb.su_cmd('ls ' + _device_path)
-                if 'No such file or directory' in res:
-                    # use /system/bin
-                    _device_path = _device_path.replace('x', '')
-
-                # copy file note: mv give sometimes a invalid id error
-                self._adb.su_cmd('cp /sdcard/frida-server ' + _device_path + '/frida-server')
-                # remove file
-                self._adb.su_cmd('rm ' + _device_path + '/frida')  # remove old named file
-                self._adb.su_cmd('rm /sdcard/frida-server')
-
-                # just to make sure
-                self._adb.su_cmd('chown root:root ' + _device_path + '/frida-server')
-                # make it executable
-                self._adb.su_cmd('chmod 06755 ' + _device_path + '/frida-server')
-
-                # start it
-                if self._adb.get_frida_version():
-                    if not self._adb.start_frida():
-                        self.onError.emit('Failed to start fridaserver on Device')
-            else:
-                print('failed to mount /system on device')
-
-            # delete extracted file
-            if os.path.exists('frida-server'):
-                os.remove('frida-server')
-        else:
-            self.onError.emit('Failed to download latest frida! Error: %d' % request.status_code)
-            return
-
+        # start it
+        if self._adb.get_frida_version():
+            if not self._adb.start_frida():
+                self.onError.emit('Failed to start fridaserver on Device')
         self.onFinished.emit()
 
 
@@ -196,8 +123,8 @@ class DevicesUpdateThread(QThread):
     def run(self):
         # get frida devices
         devices = frida.get_device_manager().enumerate_devices()
-
         for device in devices:
+            logger.debug("get device %s", device.name)
             self.onAddDevice.emit({'id': device.id, 'name': device.name, 'type': device.type})
 
         self.onDevicesUpdated.emit()
@@ -221,6 +148,12 @@ class DeviceBar(QWidget):
         super().__init__(parent=parent)
 
         # dont show for local
+        self._devices_combobox = None
+        self.update_label = None
+        self._install_btn = None
+        self._start_btn = None
+        self._restart_btn = None
+        self._doing_btn = None
         if device_type != 'usb':
             return
 
@@ -251,7 +184,7 @@ class DeviceBar(QWidget):
         self._update_thread.onStatusUpdate.connect(self._update_statuslbl)
         self._update_thread.onFinished.connect(self._frida_updated)
         self._update_thread.onError.connect(self._on_download_error)
-        self.updated_frida_version = ''
+        self.updated_frida_version = '15.1.9'
         self.updated_frida_assets_url = {}
         self._device_id = None
         self._devices = []
@@ -270,13 +203,15 @@ class DeviceBar(QWidget):
                 if not asset_name.startswith('frida-server-'):
                     continue
 
-                if not 'android' in asset_name:
+                if 'android' not in asset_name:
                     continue
 
                 tag_start = asset_name.index('android-')
                 if asset_name.index('server') >= 0:
-                    tag = asset_name[tag_start + 8:-3]
+                    tag = asset_name[tag_start + 8:]
                     self.updated_frida_assets_url[tag] = asset['browser_download_url']
+                    logger.debug("get frida server tag:%s ,name:%s path:%s", tag, asset_name,
+                                 asset['browser_download_url'])
 
     def setup(self):
         """ Setup ui
@@ -289,6 +224,7 @@ class DeviceBar(QWidget):
         self.update_label.setTextFormat(Qt.RichText)
         self.update_label.setFixedHeight(35)
         self.update_label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+
         self._install_btn = QPushButton('Install Frida', self.update_label)
         self._install_btn.setStyleSheet('padding: 0; border-color: white;')
         self._install_btn.setGeometry(self.update_label.width() - 110, 5, 100, 25)
@@ -299,16 +235,24 @@ class DeviceBar(QWidget):
         self._start_btn.setGeometry(self.update_label.width() - 110, 5, 100, 25)
         self._start_btn.clicked.connect(self._on_start_btn)
         self._start_btn.setVisible(False)
+
         self._update_btn = QPushButton('Update Frida', self.update_label)
         self._update_btn.setStyleSheet('padding: 0; border-color: white;')
         self._update_btn.setGeometry(self.update_label.width() - 110, 5, 100, 25)
         self._update_btn.clicked.connect(self._on_install_btn)
         self._update_btn.setVisible(False)
+
         self._restart_btn = QPushButton('Restart Frida', self.update_label)
         self._restart_btn.setStyleSheet('padding: 0; border-color: white;')
         self._restart_btn.setGeometry(self.update_label.width() - 110, 5, 100, 25)
         self._restart_btn.clicked.connect(self._on_restart_btn)
         self._restart_btn.setVisible(False)
+
+        self._doing_btn = QLabel('Waiting...', self.update_label)
+        self._doing_btn.setStyleSheet('padding: 0; border-color: white;')
+        self._doing_btn.setGeometry(self.update_label.width() - 110, 5, 100, 25)
+        self._doing_btn.setVisible(False)
+
         self._devices_combobox = QComboBox(self.update_label)
         self._devices_combobox.setStyleSheet('padding: 2px 5px; border-color: white;')
         self._devices_combobox.setGeometry(self.update_label.width() - 320, 5, 200, 25)
@@ -320,6 +264,7 @@ class DeviceBar(QWidget):
     def on_add_deviceitem(self, device_ident):
         """ Adds an Item to the DeviceComboBox
         """
+        logger.debug("on_add_deviceitem")
         if device_ident['type'] == self.wait_for_devtype:
             if device_ident['name'] not in self._devices:
                 self._devices.append(device_ident)
@@ -381,6 +326,7 @@ class DeviceBar(QWidget):
             self.onDeviceUpdated.emit(frida_device.id)
 
     def _on_devices_finished(self):
+        logger.debug(f"_on_devices_finished {self._devices}")
         if self._devices:
             if len(self._devices) > 1:
                 self._devices_combobox.clear()
@@ -450,19 +396,20 @@ class DeviceBar(QWidget):
                     request_url = self.updated_frida_assets_url[arch]
 
             try:
-                if self._adb.available() and request_url.index('https://') == 0:
+                if self._adb.available():
                     self._install_btn.setVisible(False)
                     self._update_btn.setVisible(False)
                     qApp.processEvents()
                     if self._update_thread is not None:
                         if not self._update_thread.isRunning():
-                            self._update_thread.frida_update_url = request_url
+                            self._update_thread.frida_path = request_url
                             self._update_thread.adb = self._adb
                             self._update_thread.start()
 
             except ValueError:
                 # something wrong in .git_cache folder
                 print("request_url not set")
+                utils.show_message_box("Install failed")
 
     def _update_statuslbl(self, text):
         self._timer.stop()
@@ -478,18 +425,22 @@ class DeviceBar(QWidget):
     def _on_start_btn(self):
         if self._adb.available():
             self._start_btn.setVisible(False)
+            self._doing_btn.setVisible(True)
             qApp.processEvents()
             if self._adb.start_frida():
                 # self.onDeviceUpdated.emit(self._device_id)
                 self._on_devices_finished()
             else:
+                self._doing_btn.setVisible(False)
                 self._start_btn.setVisible(True)
 
     def _on_restart_btn(self):
         if self._adb.available():
             self._restart_btn.setVisible(False)
+            self._doing_btn.setVisible(True)
             qApp.processEvents()
             if self._adb.start_frida(restart=True):
+                self._doing_btn.setVisible(False)
                 self._restart_btn.setVisible(True)
                 # self.onDeviceUpdated.emit(self._device_id)
                 self._on_devices_finished()
